@@ -4,6 +4,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 require("reflect-metadata");
+
 const express_1 = __importDefault(require("express"));
 const cors_1 = __importDefault(require("cors"));
 const dotenv_1 = __importDefault(require("dotenv"));
@@ -13,28 +14,47 @@ const errorHandler_middleware_1 = __importDefault(require("./presentation/middle
 require("./infrastructure/container");
 require("tsconfig-paths/register");
 const env_config_1 = require("./config/env.config");
+
 // 🔹 Load environment variables
 dotenv_1.default.config();
+
 // 🔹 Initialize Express app
 const app = (0, express_1.default)();
-// 🔹 Middleware setup;
-app.use('/api/movie-pass/webhook', express_1.default.raw({ type: 'application/json' }));
-app.post('/api/booking/webhook/stripe', express_1.default.raw({ type: 'application/json' }));
+
+// ✅ CORS middleware FIRST
+const allowedOrigins = [
+    'http://localhost:5173',
+    'https://www.muhammedameen.site',
+    'https://muhammedameen.site',
+    'https://cenify.muhammedameen.site',
+    'https://your-image-server.com',
+    'https://lh3.googleusercontent.com',
+    'https://res.cloudinary.com',
+    env_config_1.env.CLIENT_ORIGIN,
+];
+
 app.use((0, cors_1.default)({
-    origin: [
-        'http://localhost:5173',
-        'https://www.muhammedameen.site',
-        'https://muhammedameen.site',
-        'https://cenify.muhammedameen.site',
-        'https://your-image-server.com',
-        'https://lh3.googleusercontent.com',
-        'https://res.cloudinary.com',
-        env_config_1.env.CLIENT_ORIGIN,
-    ],
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
 }));
+
+// ✅ Preflight OPTIONS handling
+app.options("*", (0, cors_1.default)());
+
+// 🔹 Raw body middleware for webhooks
+app.use('/api/movie-pass/webhook', express_1.default.raw({ type: 'application/json' }));
+app.post('/api/booking/webhook/stripe', express_1.default.raw({ type: 'application/json' }));
+
+// 🔹 Cookie + JSON parsing
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
+
 // 🔹 Routes
 const vendorAuth_routes_1 = __importDefault(require("./presentation/routes/vendorAuth.routes"));
 const userAuth_routes_1 = __importDefault(require("./presentation/routes/userAuth.routes"));
@@ -51,6 +71,7 @@ const booking_routes_1 = __importDefault(require("./presentation/routes/booking.
 const notification_routes_1 = __importDefault(require("./presentation/routes/notification.routes"));
 const dashboard_routes_1 = __importDefault(require("./presentation/routes/dashboard.routes"));
 const theaterMng_routes_1 = __importDefault(require("./presentation/routes/theaterMng.routes"));
+
 app.use('/api/auth', userAuth_routes_1.default);
 app.use('/api/profile', userProfile_routes_1.default);
 app.use('/api/auth/admin', adminAuth_routes_1.default);
@@ -66,6 +87,9 @@ app.use('/api/seat-selection', seatSelection_routes_1.default);
 app.use('/api/booking', booking_routes_1.default);
 app.use('/api/notifications', notification_routes_1.default);
 app.use('/api/dashboard', dashboard_routes_1.default);
+
+// 🔹 Error & Logger Middleware
 app.use(errorHandler_middleware_1.default);
 app.use(logger_middleware_1.requestLogger);
+
 exports.default = app;
