@@ -1,71 +1,85 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-require("reflect-metadata");
-const express_1 = __importDefault(require("express"));
-const cors_1 = __importDefault(require("cors"));
-const dotenv_1 = __importDefault(require("dotenv"));
-const cookie_parser_1 = __importDefault(require("cookie-parser"));
-const logger_middleware_1 = require("./presentation/middleware/logger.middleware");
-const errorHandler_middleware_1 = __importDefault(require("./presentation/middleware/errorHandler.middleware"));
-require("./infrastructure/container");
-require("tsconfig-paths/register");
-const env_config_1 = require("./config/env.config");
+import 'reflect-metadata';
+import express from 'express';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import cookieParser from 'cookie-parser';
+import { requestLogger } from './presentation/middleware/logger.middleware';
+import errorHandler from './presentation/middleware/errorHandler.middleware';
+import './infrastructure/container';
+import 'tsconfig-paths/register';
+import { container } from './infrastructure/container';
+import { env } from './config/env.config';
+
 // 🔹 Load environment variables
-dotenv_1.default.config();
+dotenv.config();
+
 // 🔹 Initialize Express app
-const app = (0, express_1.default)();
+const app = express();
+
 // 🔹 Middleware setup;
-app.use('/api/movie-pass/webhook', express_1.default.raw({ type: 'application/json' }));
-app.post('/api/booking/webhook/stripe', express_1.default.raw({ type: 'application/json' }));
-app.use((0, cors_1.default)({
-    origin: [
-        'http://localhost:5173',
-        'https://www.muhammedameen.site',
-        'https://muhammedameen.site',
-        'https://cenify.muhammedameen.site',
-        'https://your-image-server.com',
-        'https://lh3.googleusercontent.com',
-        'https://res.cloudinary.com',
-        env_config_1.env.CLIENT_ORIGIN,
-    ],
+app.use('/api/movie-pass/webhook', express.raw({ type: 'application/json' }));
+app.post('/api/booking/webhook/stripe', express.raw({ type: 'application/json' }));
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      callback(null, true); // ✅ Allow all origins
+    },
     credentials: true,
-}));
-app.use((0, cookie_parser_1.default)());
-app.use(express_1.default.json());
+  }),
+);
+
+// app.use(
+//   cors({
+//     origin: [
+//       'http://localhost:5173',
+//       'https://www.muhammedameen.site',
+//       'https://muhammedameen.site',
+//       'https://cenify.muhammedameen.site',
+//       'https://your-image-server.com',
+//       'https://lh3.googleusercontent.com',
+//       'https://res.cloudinary.com',
+//       env.CLIENT_ORIGIN,
+//     ],
+//     credentials: true,
+//   }),
+// );
+
+app.use(cookieParser());
+app.use(express.json());
+
 // 🔹 Routes
-const vendorAuth_routes_1 = __importDefault(require("./presentation/routes/vendorAuth.routes"));
-const userAuth_routes_1 = __importDefault(require("./presentation/routes/userAuth.routes"));
-const userProfile_routes_1 = __importDefault(require("./presentation/routes/userProfile.routes"));
-const adminAuth_routes_1 = __importDefault(require("./presentation/routes/adminAuth.routes"));
-const adminMng_routes_1 = __importDefault(require("./presentation/routes/adminMng.routes"));
-const seatMng_routes_1 = __importDefault(require("./presentation/routes/seatMng.routes"));
-const screenMng_routes_1 = __importDefault(require("./presentation/routes/screenMng.routes"));
-const showMng_routes_1 = __importDefault(require("./presentation/routes/showMng.routes"));
-const movieMng_routes_1 = __importDefault(require("./presentation/routes/movieMng.routes"));
-const moviePass_routes_1 = __importDefault(require("./presentation/routes/moviePass.routes"));
-const seatSelection_routes_1 = __importDefault(require("./presentation/routes/seatSelection.routes"));
-const booking_routes_1 = __importDefault(require("./presentation/routes/booking.routes"));
-const notification_routes_1 = __importDefault(require("./presentation/routes/notification.routes"));
-const dashboard_routes_1 = __importDefault(require("./presentation/routes/dashboard.routes"));
-const theaterMng_routes_1 = __importDefault(require("./presentation/routes/theaterMng.routes"));
-app.use('/api/auth', userAuth_routes_1.default);
-app.use('/api/profile', userProfile_routes_1.default);
-app.use('/api/auth/admin', adminAuth_routes_1.default);
-app.use('/api/vendor', vendorAuth_routes_1.default);
-app.use('/api/admin', adminMng_routes_1.default);
-app.use('/api/vendor', seatMng_routes_1.default);
-app.use('/api/theater', theaterMng_routes_1.default);
-app.use('/api/screen', screenMng_routes_1.default);
-app.use('/api/show', showMng_routes_1.default);
-app.use('/api/movie', movieMng_routes_1.default);
-app.use('/api/movie-pass', moviePass_routes_1.default);
-app.use('/api/seat-selection', seatSelection_routes_1.default);
-app.use('/api/booking', booking_routes_1.default);
-app.use('/api/notifications', notification_routes_1.default);
-app.use('/api/dashboard', dashboard_routes_1.default);
-app.use(errorHandler_middleware_1.default);
-app.use(logger_middleware_1.requestLogger);
-exports.default = app;
+import vendorRoutes from './presentation/routes/vendorAuth.routes';
+import authRoutes from './presentation/routes/userAuth.routes';
+import profileRoutes from './presentation/routes/userProfile.routes';
+import adminAuthRoutes from './presentation/routes/adminAuth.routes';
+import adminMngRoutes from './presentation/routes/adminMng.routes';
+import seatLayoutRoutes from './presentation/routes/seatMng.routes';
+import screenMngRoutes from './presentation/routes/screenMng.routes';
+import showMngRoutes from './presentation/routes/showMng.routes';
+import movieMngRoutes from './presentation/routes/movieMng.routes';
+import moviePassRoutes from './presentation/routes/moviePass.routes';
+import seatSelectionRoutes from './presentation/routes/seatSelection.routes';
+import bookingRoutes from './presentation/routes/booking.routes';
+import notificationRoutes from './presentation/routes/notification.routes';
+import dashboardRoutes from './presentation/routes/dashboard.routes';
+import theaterRoutes from './presentation/routes/theaterMng.routes';
+
+app.use('/api/auth', authRoutes);
+app.use('/api/profile', profileRoutes);
+app.use('/api/auth/admin', adminAuthRoutes);
+app.use('/api/vendor', vendorRoutes);
+app.use('/api/admin', adminMngRoutes);
+app.use('/api/vendor', seatLayoutRoutes);
+app.use('/api/theater', theaterRoutes);
+app.use('/api/screen', screenMngRoutes);
+app.use('/api/show', showMngRoutes);
+app.use('/api/movie', movieMngRoutes);
+app.use('/api/movie-pass', moviePassRoutes);
+app.use('/api/seat-selection', seatSelectionRoutes);
+app.use('/api/booking', bookingRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/dashboard', dashboardRoutes);
+app.use(errorHandler);
+app.use(requestLogger);
+
+export default app;
