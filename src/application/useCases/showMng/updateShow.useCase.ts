@@ -22,23 +22,18 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
 
   async execute(dto: UpdateShowDTO): Promise<Show> {
     try {
-      // Validate Show Existence
       const existingShow = await this.showRepository.findById(dto.id);
       if (!existingShow) {
         throw new CustomError(ERROR_MESSAGES.VALIDATION.SHOW_NOT_FOUND, HttpResCode.BAD_REQUEST);
       }
 
-      if (existingShow.status === 'Running') {
-        throw new CustomError(ERROR_MESSAGES.VALIDATION.SHOW_RUNNING, HttpResCode.BAD_REQUEST);
-      }
-      if (existingShow.status === 'Completed') {
-        throw new CustomError(ERROR_MESSAGES.VALIDATION.SHOW_COMPLETED, HttpResCode.BAD_REQUEST);
-      }
-      if (existingShow.status === 'Cancelled') {
-        throw new CustomError(ERROR_MESSAGES.VALIDATION.SHOW_CANCELLED, HttpResCode.BAD_REQUEST);
+      if (['Running', 'Completed', 'Cancelled'].includes(existingShow.status)) {
+        throw new CustomError(
+          `Cannot update a ${existingShow.status.toLowerCase()} show`,
+          HttpResCode.BAD_REQUEST,
+        );
       }
 
-      // Fetch Movie Duration
       const movieId = dto.movieId || existingShow.movieId;
       const movie = await this.movieRepository.findById(movieId);
       if (!movie || !movie.duration) {
@@ -48,7 +43,6 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
       const { hours, minutes, seconds } = movie.duration;
       const movieDurationMs = (hours * 3600 + minutes * 60 + seconds) * 1000;
 
-      // Fetch Theater Interval Gap
       const theaterId = dto.theaterId || existingShow.theaterId;
       const theater = await this.theaterRepository.findById(theaterId);
       if (!theater || typeof theater.intervalTime !== 'number') {
@@ -57,46 +51,17 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
 
       const intervalGapMs = theater.intervalTime * 60000;
 
-      // Validate and Parse Start Time
-      let startTime: Date;
-      if (dto.startTime) {
-        startTime = new Date(dto.startTime);
-        if (isNaN(startTime.getTime())) {
-          throw new CustomError(
-            ERROR_MESSAGES.VALIDATION.INVALID_START_TIME,
-            HttpResCode.BAD_REQUEST,
-          );
-        }
-      } else {
-        startTime = existingShow.startTime;
+      let startTime = dto.startTime ? new Date(dto.startTime) : existingShow.startTime;
+      if (isNaN(startTime.getTime())) {
+        throw new CustomError(
+          ERROR_MESSAGES.VALIDATION.INVALID_START_TIME,
+          HttpResCode.BAD_REQUEST,
+        );
       }
 
-      // Calculate or Validate End Time
-      let endTime: Date;
-      if (dto.endTime) {
-        endTime = new Date(dto.endTime);
-        if (isNaN(endTime.getTime())) {
-          throw new CustomError(
-            ERROR_MESSAGES.VALIDATION.INVALID_END_TIME,
-            HttpResCode.BAD_REQUEST,
-          );
-        }
-        // Verify endTime matches expected duration
-        const expectedEndTime = new Date(startTime.getTime() + movieDurationMs + intervalGapMs);
-        if (Math.abs(endTime.getTime() - expectedEndTime.getTime()) > 1000) {
-          throw new CustomError(
-            ERROR_MESSAGES.VALIDATION.INVALID_END_TIME,
-            HttpResCode.BAD_REQUEST,
-          );
-        }
-      } else {
-        endTime = new Date(startTime.getTime() + movieDurationMs + intervalGapMs);
-      }
-
-      // Validate Show Date
       let showDate: Date;
-      if (dto.date) {
-        showDate = new Date(dto.date);
+      if (dto.showDate) {
+        showDate = new Date(dto.showDate);
         if (isNaN(showDate.getTime())) {
           throw new CustomError(ERROR_MESSAGES.VALIDATION.INVALID_DATE, HttpResCode.BAD_REQUEST);
         }
@@ -105,14 +70,27 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
       }
 
       // Ensure startTime aligns with showDate
-      const startTimeDate = new Date(startTime);
-      startTimeDate.setFullYear(showDate.getFullYear(), showDate.getMonth(), showDate.getDate());
-      const adjustedStartTime = startTimeDate;
+      const adjustedStartTime = new Date(startTime);
+      adjustedStartTime.setFullYear(
+        showDate.getFullYear(),
+        showDate.getMonth(),
+        showDate.getDate(),
+      );
+
       const adjustedEndTime = new Date(
         adjustedStartTime.getTime() + movieDurationMs + intervalGapMs,
       );
 
-      // Check if Time Slot is Available
+      if (dto.endTime) {
+        const providedEndTime = new Date(dto.endTime);
+        if (Math.abs(providedEndTime.getTime() - adjustedEndTime.getTime()) > 1000) {
+          throw new CustomError(
+            ERROR_MESSAGES.VALIDATION.INVALID_END_TIME,
+            HttpResCode.BAD_REQUEST,
+          );
+        }
+      }
+
       const isSlotAvailable = await this.screenRepository.checkSlot(
         dto.screenId || existingShow.screenId,
         adjustedStartTime,
@@ -126,7 +104,6 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
         );
       }
 
-      // Update Show
       const updatedShow = new Show(
         dto.id,
         adjustedStartTime,
@@ -143,9 +120,7 @@ export class UpdateShowUseCase implements IUpdateShowUseCase {
       return await this.showRepository.update(updatedShow, existingShow.startTime);
     } catch (error) {
       console.error('❌ Error updating show:', error);
-      if (error instanceof CustomError) {
-        throw error;
-      }
+      if (error instanceof CustomError) throw error;
       throw new CustomError(
         ERROR_MESSAGES.DATABASE.RECORD_NOT_SAVED,
         HttpResCode.INTERNAL_SERVER_ERROR,

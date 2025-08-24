@@ -61,6 +61,7 @@ export class ShowJobService {
         }
         if (show.status === 'Running') {
           await this.showRepository.updateStatus(showId, 'Completed');
+          await this.showRepository.creditRevenueToWallet(showId);
           console.log(`✅ Show ${showId} status updated to Completed`);
         }
       } catch (error) {
@@ -74,7 +75,6 @@ export class ShowJobService {
       const { showId } = job.attrs.data;
 
       try {
-
         await this.showRepository.pullExpiredSeats(showId);
 
         console.log(`✅ Expired pending seats removed for showId: ${showId}`);

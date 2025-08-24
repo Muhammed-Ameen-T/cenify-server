@@ -131,7 +131,7 @@ export class CreateBookingUseCase implements ICreateBookingUseCase {
         false,
         [],
       );
-      
+
       // Send to vendor
       const show = await this.showRepository.findById(savedBooking.showId._id.toString());
       if (!show) {
@@ -153,7 +153,7 @@ export class CreateBookingUseCase implements ICreateBookingUseCase {
         false,
         [],
       );
-      
+
       const adminNotification = new Notification(
         null as any,
         null,
@@ -167,15 +167,14 @@ export class CreateBookingUseCase implements ICreateBookingUseCase {
         true,
         [],
       );
-      
+
       await this.notificationRepository.createNotification(userNotification);
       await this.notificationRepository.createNotification(vendorNotification);
       await this.notificationRepository.createGlobalNotification(adminNotification);
       socketService.emitNotification(`vendor-${show.vendorId}`, vendorNotification);
       socketService.emitNotification('admin-global', adminNotification);
       socketService.emitNotification(`user-${dto.userId}`, userNotification);
-      
-   
+
       await this.userRepository.incrementLoyalityPoints(
         dto.userId,
         savedBooking.bookedSeatsId.length,
@@ -209,45 +208,3 @@ export class CreateBookingUseCase implements ICreateBookingUseCase {
     throw new CustomError(ERROR_MESSAGES.GENERAL.INVALID_PAYMENT_METHOD, HttpResCode.BAD_REQUEST);
   }
 }
-
-   // socketService.emitNotification(dto.userId, {
-      //   _id: userNotification._id?.toString() || '',
-      //   userId: dto.userId,
-      //   title: userNotification.title,
-      //   type: userNotification.type,
-      //   description: userNotification.description,
-      //   bookingId: userNotification?.bookingId,
-      //   createdAt: userNotification.createdAt,
-      //   updatedAt: now,
-      //   isRead: userNotification.isRead,
-      //   isGlobal: userNotification.isGlobal,
-      //   readedUsers: []
-      // });
-
-      // socketService.emitNotification(show.vendorId, {
-      //   _id: vendorNotification._id?.toString() || '',
-      //   userId: show.vendorId,
-      //   title: vendorNotification.title,
-      //   type: vendorNotification.type,
-      //   description: vendorNotification.description,
-      //   bookingId: vendorNotification?.bookingId,
-      //   createdAt: vendorNotification.createdAt,
-      //   updatedAt: now,
-      //   isRead: vendorNotification.isRead,
-      //   isGlobal: vendorNotification.isGlobal,
-      //   readedUsers: []
-      // });
-
-      // socketService.emitNotification(null, {
-      //   _id: adminNotification._id?.toString() || '',
-      //   userId: null,
-      //   title: adminNotification.title,
-      //   type: adminNotification.type,
-      //   description: adminNotification.description,
-      //   bookingId: adminNotification?.bookingId,
-      //   createdAt: adminNotification.createdAt,
-      //   updatedAt: now,
-      //   isRead: adminNotification.isRead,
-      //   isGlobal: adminNotification.isGlobal,
-      //   readedUsers: []
-      // });

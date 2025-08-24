@@ -22,7 +22,7 @@ app.post('/api/booking/webhook/stripe', express.raw({ type: 'application/json' }
 app.use(
   cors({
     origin: (origin, callback) => {
-      callback(null, true); // ✅ Allow all origins
+      callback(null, true); 
     },
     credentials: true,
   }),

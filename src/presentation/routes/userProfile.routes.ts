@@ -26,13 +26,13 @@ router.patch(
 router.get(
   '/wallet',
   verifyAccessToken,
-  authorizeRoles(['user']),
+  authorizeRoles(['user', 'admin', 'vendor']),
   userAuthController.findUserWallet.bind(userAuthController),
 );
 router.get(
   '/transactions',
   verifyAccessToken,
-  authorizeRoles(['user']),
+  authorizeRoles(['user', 'admin', 'vendor']),
   userAuthController.findUserWalletTransactions.bind(userAuthController),
 );
 router.get(
@@ -69,6 +69,13 @@ router.post(
   authorizeRoles(['user']),
   validateRequest(VerifyOtpPhoneSchema),
   userAuthController.verifyOtpPhone.bind(userAuthController),
+);
+
+router.post(
+  '/wallet-withdraw',
+  verifyAccessToken,
+  authorizeRoles(['vendor']),
+  userAuthController.withdrawFromWallet.bind(userAuthController),
 );
 
 export default router;
